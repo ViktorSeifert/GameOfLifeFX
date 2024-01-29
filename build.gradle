@@ -27,7 +27,7 @@ tasks.withType(JavaCompile) {
 
 application {
     mainModule = 'net.viktors.gameoflifefx'
-    mainClass = 'net.viktors.gameoflifefx.HelloApplication'
+    mainClass = 'net.viktors.gameoflifefx.GameOfLifeAppKt'
 }
 
 [compileKotlin, compileTestKotlin].forEach {
