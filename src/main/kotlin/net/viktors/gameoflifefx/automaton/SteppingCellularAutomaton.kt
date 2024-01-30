@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 package net.viktors.gameoflifefx.automaton
 
+import net.viktors.gameoflifefx.concurrent.Mutex
 import org.apache.commons.csv.CSVFormat
 import java.io.InputStreamReader
 import kotlin.random.Random
@@ -31,9 +32,92 @@ abstract class SteppingCellularAutomaton<T : Enum<T>>(val rows: Int, val columns
     abstract fun advance()
 }
 
-class GameOfLifeAutomaton(
-    rows: Int, columns: Int, private var grid: Array<Array<CellState>> = randomGrid(rows, columns)
+class GameOfLifeAutomaton private constructor(
+    rows: Int, columns: Int, grid: Array<Array<CellState>>
 ) : SteppingCellularAutomaton<GameOfLifeAutomaton.CellState>(rows, columns) {
+    constructor(rows: Int, columns: Int) : this(rows, columns, randomGrid(rows, columns))
+
+    private var currentGrid = grid
+    private var nextGrid = randomGrid(rows, columns)
+    private val mutex = Mutex()
+
+    enum class CellState(private val csvRepresentation: Int) {
+        ALIVE(1), DEAD(0);
+
+        companion object {
+            private const val DEFAULT_CSV_VALUE = 0
+            val DEFAULT_VALUE = DEAD
+
+            fun fromCSVString(input: String): CellState {
+                val numberRepresentation = input.toIntOrNull() ?: DEFAULT_CSV_VALUE
+
+                for (v in entries) {
+                    if (v.csvRepresentation == numberRepresentation) {
+                        return v
+                    }
+                }
+
+                throw IllegalArgumentException("$this.javaClass.name has no value for the number $numberRepresentation")
+            }
+        }
+    }
+
+    override fun withCellData(action: (data: CellData<CellState>) -> Unit) {
+        mutex.withLock {
+            currentGrid.indices.forEach { row ->
+                currentGrid[row].indices.forEach { column ->
+                    action(CellData(row, column, currentGrid[row][column]))
+                }
+            }
+        }
+    }
+
+    override fun advance() {
+        nextGrid.indices.forEach { row ->
+            nextGrid[row].indices.forEach { column ->
+                val numberOfLiveNeighbors = numberOfLiveNeighbors(row, column)
+                val alive = isAlive(row, column)
+                val nextState = if (numberOfLiveNeighbors in 2..3 && alive || //
+                    numberOfLiveNeighbors == 3
+                ) CellState.ALIVE
+                else CellState.DEAD
+                nextGrid[row][column] = nextState
+            }
+        }
+
+        mutex.withLock {
+            val temp = currentGrid
+            currentGrid = nextGrid
+            nextGrid = temp
+        }
+    }
+
+    private fun numberOfLiveNeighbors(row: Int, column: Int): Int {
+        var result = 0
+
+        // top
+        if (isAlive(row - 1, column)) result += 1
+        // top-right
+        if (isAlive(row - 1, column + 1)) result += 1
+        // right
+        if (isAlive(row, column + 1)) result += 1
+        // bottom-right
+        if (isAlive(row + 1, column + 1)) result += 1
+        // bottom
+        if (isAlive(row + 1, column)) result += 1
+        // bottom-left
+        if (isAlive(row + 1, column - 1)) result += 1
+        // left
+        if (isAlive(row, column - 1)) result += 1
+        // top-left
+        if (isAlive(row - 1, column - 1)) result += 1
+
+        return result
+    }
+
+    private fun isAlive(row: Int, column: Int): Boolean =
+        row in 0..<rows && column in 0..<columns && currentGrid[row][column] == CellState.ALIVE
+
     companion object {
         private val csvFormat: CSVFormat = CSVFormat.DEFAULT.builder().setAllowMissingColumnNames(true).build()
 
@@ -60,38 +144,5 @@ class GameOfLifeAutomaton(
 
             return GameOfLifeAutomaton(rows, columns, result.toTypedArray())
         }
-    }
-
-    enum class CellState(private val csvRepresentation: Int) {
-        ALIVE(1), DEAD(0);
-
-        companion object {
-            private const val DEFAULT_CSV_VALUE = 0
-            val DEFAULT_VALUE = DEAD
-
-            fun fromCSVString(input: String): CellState {
-                val numberRepresentation = input.toIntOrNull() ?: DEFAULT_CSV_VALUE
-
-                for (v in entries) {
-                    if (v.csvRepresentation == numberRepresentation) {
-                        return v
-                    }
-                }
-
-                throw IllegalArgumentException("$this.javaClass.name has no value for the number $numberRepresentation")
-            }
-        }
-    }
-
-    override fun withCellData(action: (data: CellData<CellState>) -> Unit) {
-        grid.indices.forEach { row ->
-            grid[row].indices.forEach { column ->
-                action(CellData(row, column, grid[row][column]))
-            }
-        }
-    }
-
-    override fun advance() {
-        grid = randomGrid(rows, columns)
     }
 }

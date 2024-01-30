@@ -46,7 +46,7 @@ class GameOfLifeApp : GameApplication() {
     companion object {
         private const val CELL_VIEW_SIZE = 10.0
         private const val GRID_SIZE = 100
-        private val stepInterval = Duration.seconds(2.0)
+        private val stepInterval = Duration.seconds(1.5)
 
         private val INPUT_FILE_CHARSET = Charsets.UTF_16LE
     }
@@ -73,7 +73,7 @@ class GameOfLifeApp : GameApplication() {
 
 
     override fun initGame() {
-        loadStateFromFile("simple_sample2.csv")
+        loadStateFromFile("example_patterns1.csv")
 
         gameState.withCellData {
             val entity = FXGL.entityBuilder()
