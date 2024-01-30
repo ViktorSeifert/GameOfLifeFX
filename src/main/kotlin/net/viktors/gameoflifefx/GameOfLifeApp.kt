@@ -16,6 +16,8 @@ import javafx.scene.shape.Rectangle
 import javafx.util.Duration
 import net.viktors.gameoflifefx.automaton.GameOfLifeAutomaton
 import net.viktors.gameoflifefx.automaton.SteppingCellularAutomaton
+import java.io.InputStream
+import java.io.InputStreamReader
 import java.util.concurrent.atomic.AtomicBoolean
 
 // For now leave this as aliases, later we can make the application more generic
@@ -23,33 +25,42 @@ typealias CellState = GameOfLifeAutomaton.CellState
 typealias CellData = SteppingCellularAutomaton.CellData<CellState>
 
 class GameOfLifeApp : GameApplication() {
-    private val cellViewSize = 10.0
-    private val stepInterval = Duration.seconds(2.0)
+    companion object {
+        private const val CELL_VIEW_SIZE = 10.0
+        private const val GRID_SIZE = 100
+        private val stepInterval = Duration.seconds(2.0)
 
-    private val gameState: SteppingCellularAutomaton<CellState> = GameOfLifeAutomaton(100, 100)
+        private val INPUT_FILE_CHARSET = Charsets.UTF_16LE
+    }
+
+
+    private lateinit var gameState: SteppingCellularAutomaton<CellState>
     private val colorMapper: ColorMapper<CellState> = GameOfLifeColorMapper()
     private val cellEntities: MutableMap<Point2D, Entity> = mutableMapOf()
 
     private lateinit var periodicUpdateAction: TimerAction
     private var shouldAdvanceAutomaton: AtomicBoolean = AtomicBoolean(false)
 
-    private val playPauseAction = object: UserAction(name = "Play/Pause") {
+    private val playPauseAction = object : UserAction(name = "Play/Pause") {
         override fun onActionBegin() {
             shouldAdvanceAutomaton.flip()
         }
     }
 
     override fun initSettings(settings: GameSettings) {
-        settings.width = gameState.columns * cellViewSize.toInt()
-        settings.height = gameState.rows * cellViewSize.toInt()
+        settings.width = GRID_SIZE * CELL_VIEW_SIZE.toInt()
+        settings.height = GRID_SIZE * CELL_VIEW_SIZE.toInt()
         settings.title = "Game of life"
     }
 
+
     override fun initGame() {
+        loadStateFromFile("simple_sample2.csv")
+
         gameState.withCellData {
             val entity = FXGL.entityBuilder()
-                .at(it.column * cellViewSize, it.row * cellViewSize)
-                .view(Rectangle(cellViewSize, cellViewSize, Color.WHITE))
+                .at(it.column * CELL_VIEW_SIZE, it.row * CELL_VIEW_SIZE)
+                .view(Rectangle(CELL_VIEW_SIZE, CELL_VIEW_SIZE, Color.WHITE))
                 .buildAndAttach()
 
             cellEntities[stateCoordinates(it)] = entity
@@ -64,6 +75,20 @@ class GameOfLifeApp : GameApplication() {
         }, stepInterval)
 
         getInput().addAction(playPauseAction, KeyCode.SPACE)
+    }
+
+    // leave this with the parameter, so later we can implement loading while app is running
+    @Suppress("SameParameterValue")
+    private fun loadStateFromFile(fileName: String) {
+        val wasRunning = shouldAdvanceAutomaton.getAndSet(false)
+
+        gameState = javaClass.getResourceAsStream(fileName).use { reader ->
+            GameOfLifeAutomaton.fromInputStream(
+                GRID_SIZE, GRID_SIZE, InputStreamReader(reader ?: InputStream.nullInputStream(), INPUT_FILE_CHARSET)
+            )
+        }
+
+        shouldAdvanceAutomaton.set(wasRunning)
     }
 
     override fun onUpdate(tpf: Double) {

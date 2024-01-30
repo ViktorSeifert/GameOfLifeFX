@@ -47,6 +47,8 @@ dependencies {
         exclude(group: 'org.jetbrains.kotlin')
     }
 
+    implementation 'org.apache.commons:commons-csv:1.10.0'
+
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
 }
