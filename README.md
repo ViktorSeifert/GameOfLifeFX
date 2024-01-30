@@ -1,1 +1,1 @@
-Just my playgroud for JavaFXGL.  Trying to implement the Game Of Life.
+Just my playgroud for JavaFXGL.  Implementing the Game Of Life as an excercise for myself.
