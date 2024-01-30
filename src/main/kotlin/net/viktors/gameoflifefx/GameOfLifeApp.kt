@@ -12,12 +12,18 @@ import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
 import javafx.util.Duration
 import net.viktors.gameoflifefx.automaton.GameOfLifeAutomaton
+import net.viktors.gameoflifefx.automaton.SteppingCellularAutomaton
+
+// For now leave this as aliases, later we can make the application more generic
+typealias CellState = GameOfLifeAutomaton.CellState
+typealias CellData = SteppingCellularAutomaton.CellData<CellState>
 
 class GameOfLifeApp : GameApplication() {
     private val cellViewSize = 10.0
     private val stepInterval = Duration.seconds(2.0)
 
-    private val gameState: GameOfLifeAutomaton = GameOfLifeAutomaton(100, 100)
+    private val gameState: SteppingCellularAutomaton<CellState> = GameOfLifeAutomaton(100, 100)
+    private val colorMapper: ColorMapper<CellState> = GameOfLifeColorMapper()
     private val cellEntities: MutableMap<Point2D, Entity> = mutableMapOf()
 
     private lateinit var periodicUpdateAction: TimerAction
@@ -43,21 +49,16 @@ class GameOfLifeApp : GameApplication() {
         }, stepInterval)
     }
 
-    private fun getColor(state: GameOfLifeAutomaton.CellState): Color = when (state) {
-        GameOfLifeAutomaton.CellState.ALIVE -> Color.GREEN
-        GameOfLifeAutomaton.CellState.DEAD -> Color.BLACK
-    }
-
     override fun onUpdate(tpf: Double) {
         gameState.withCellData {
-            getViewRect(it).fill = getColor(it.state)
+            getViewRect(it).fill = colorMapper.viewColor(it.state)
         }
     }
 
-    private fun stateCoordinates(cellData: GameOfLifeAutomaton.CellData) =
+    private fun stateCoordinates(cellData: CellData) =
         Point2D(cellData.row.toDouble(), cellData.column.toDouble())
 
-    private fun getViewRect(cellData: GameOfLifeAutomaton.CellData): Rectangle =
+    private fun getViewRect(cellData: CellData): Rectangle =
         cellEntities[stateCoordinates(cellData)]?.viewComponent?.children?.get(0) as Rectangle
 }
 
