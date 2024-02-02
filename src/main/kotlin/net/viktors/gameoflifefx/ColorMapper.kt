@@ -26,8 +26,8 @@ abstract class ColorMapper<T: Enum<T>> {
 }
 
 class GameOfLifeColorMapper: ColorMapper<GameOfLifeAutomaton.CellState>() {
-    override fun viewColor(value: GameOfLifeAutomaton.CellState) = when (value) {
+    override fun viewColor(value: GameOfLifeAutomaton.CellState): Color = when (value) {
         GameOfLifeAutomaton.CellState.ALIVE -> Color.GREEN
-        GameOfLifeAutomaton.CellState.DEAD -> Color.BLACK
+        GameOfLifeAutomaton.CellState.DEAD -> Color.LIGHTGREY
     }
 }
