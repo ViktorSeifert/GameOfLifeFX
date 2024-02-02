@@ -30,6 +30,8 @@ abstract class SteppingCellularAutomaton<T : Enum<T>>(val rows: Int, val columns
     abstract fun withCellData(action: (data: CellData<T>) -> Unit)
 
     abstract fun advance()
+
+    abstract fun randomize()
 }
 
 class GameOfLifeAutomaton private constructor(
@@ -39,7 +41,7 @@ class GameOfLifeAutomaton private constructor(
 
     private var currentGrid = grid
     private var nextGrid = randomGrid(rows, columns)
-    private val mutex = Mutex()
+    private val gridMutex = Mutex()
 
     enum class CellState(private val csvRepresentation: Int) {
         ALIVE(1), DEAD(0);
@@ -63,7 +65,7 @@ class GameOfLifeAutomaton private constructor(
     }
 
     override fun withCellData(action: (data: CellData<CellState>) -> Unit) {
-        mutex.withLock {
+        gridMutex.withLock {
             currentGrid.indices.forEach { row ->
                 currentGrid[row].indices.forEach { column ->
                     action(CellData(row, column, currentGrid[row][column]))
@@ -85,7 +87,7 @@ class GameOfLifeAutomaton private constructor(
             }
         }
 
-        mutex.withLock {
+        gridMutex.withLock {
             val temp = currentGrid
             currentGrid = nextGrid
             nextGrid = temp
@@ -117,6 +119,13 @@ class GameOfLifeAutomaton private constructor(
 
     private fun isAlive(row: Int, column: Int): Boolean =
         row in 0..<rows && column in 0..<columns && currentGrid[row][column] == CellState.ALIVE
+
+
+    override fun randomize() {
+        val randomGrid = randomGrid(rows, columns)
+
+        gridMutex.withLock { currentGrid = randomGrid }
+    }
 
     companion object {
         private val csvFormat: CSVFormat = CSVFormat.DEFAULT.builder().setAllowMissingColumnNames(true).build()

@@ -26,7 +26,6 @@ import com.almasb.fxgl.dsl.getGameTimer
 import com.almasb.fxgl.dsl.getInput
 import com.almasb.fxgl.entity.Entity
 import com.almasb.fxgl.input.UserAction
-import com.almasb.fxgl.time.TimerAction
 import javafx.geometry.Point2D
 import javafx.scene.input.KeyCode
 import javafx.scene.paint.Color
@@ -56,12 +55,18 @@ class GameOfLifeApp : GameApplication() {
     private val colorMapper: ColorMapper<CellState> = GameOfLifeColorMapper()
     private val cellEntities: MutableMap<Point2D, Entity> = mutableMapOf()
 
-    private lateinit var periodicUpdateAction: TimerAction
-    private var shouldAdvanceAutomaton: AtomicBoolean = AtomicBoolean(false)
+    private val shouldAdvanceAutomaton: AtomicBoolean = AtomicBoolean(false)
+    private val shouldRandomizeAutomaton: AtomicBoolean = AtomicBoolean(false)
 
     private val playPauseAction = object : UserAction(name = "Play/Pause") {
         override fun onActionBegin() {
             shouldAdvanceAutomaton.flip()
+        }
+    }
+
+    private val randomizeAction = object : UserAction(name = "Randomize") {
+        override fun onActionBegin() {
+            shouldRandomizeAutomaton.set(true)
         }
     }
 
@@ -84,16 +89,20 @@ class GameOfLifeApp : GameApplication() {
             cellEntities[stateCoordinates(it)] = entity
         }
 
-        periodicUpdateAction = getGameTimer().runAtInterval({
-            Async.startAsync {
-                if (shouldAdvanceAutomaton.get()) {
-                    gameState.advance()
-                }
-            }
-        }, stepInterval)
+        getGameTimer().runAtInterval(::onAutomatonStepTick, stepInterval)
 
         getInput().addAction(playPauseAction, KeyCode.SPACE)
+        getInput().addAction(randomizeAction, KeyCode.R)
     }
+
+    private fun onAutomatonStepTick() = Async.startAsync {
+        if (shouldRandomizeAutomaton.getAndSet(false)) {
+            gameState.randomize()
+        } else if (shouldAdvanceAutomaton.get()) {
+            gameState.advance()
+        }
+    }
+
 
     // leave this with the parameter, so later we can implement loading while app is running
     @Suppress("SameParameterValue")
