@@ -43,8 +43,8 @@ typealias CellData = SteppingCellularAutomaton.CellData<CellState>
 
 class GameOfLifeApp : GameApplication() {
     companion object {
-        private const val CELL_VIEW_SIZE = 10.0
-        private const val GRID_SIZE = 100
+        private const val CELL_VIEW_SIZE = 8.0
+        private const val GRID_SIZE = 150
         private val stepInterval = Duration.seconds(1.5)
 
         private val INPUT_FILE_CHARSET = Charsets.UTF_16LE
