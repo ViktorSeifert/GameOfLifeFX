@@ -78,7 +78,7 @@ class GameOfLifeApp : GameApplication() {
 
 
     override fun initGame() {
-        loadStateFromFile("example_patterns1.csv")
+        loadStateFromFile("ships.csv")
 
         gameState.withCellData {
             val entity = FXGL.entityBuilder()
